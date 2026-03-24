@@ -295,7 +295,7 @@
 
     <div class="pivot-section">
         <div class="pivot-header">
-            <h3>ספירת רשומות CHP לפי מספר סניפים × ימים ללא קופה</h3>
+            <h3 id="pivotTitle">ספירת רשומות CHP לפי מספר סניפים × ימים ללא קופה</h3>
         </div>
         <div class="pivot-wrap">
             <table class="pivot-table" id="pivotTable"></table>
@@ -723,8 +723,37 @@ function buildPivotData() {
 }
 
 function renderPivotTable() {
-    const { pivot, maxStores } = buildPivotData();
     const table = document.getElementById('pivotTable');
+    const pivotTitle = document.getElementById('pivotTitle');
+
+    // Single store selected — show one row matching the heatmap block
+    if (!isAllStores(currentStore)) {
+        pivotTitle.textContent = 'ספירת רשומות CHP לפי ימים ללא קופה — ' + currentStore;
+        const storeData = TREEMAP_DATA.find(s => s.store === currentStore);
+        let html = '<thead><tr><th>סניף</th>';
+        PIVOT_RANGES.forEach(r => { html += '<th>' + r.label + '</th>'; });
+        html += '<th>סה"כ</th></tr></thead><tbody>';
+
+        if (storeData) {
+            html += '<tr><td class="row-header">' + storeData.store + '</td>';
+            PIVOT_RANGES.forEach(r => {
+                const val = storeData[r.key] || 0;
+                const cls = val > 0 ? getCellClass(val) + ' clickable' : getCellClass(val);
+                const onclick = val > 0 ? ' onclick="drillDownRange(\'' + r.key + '\')"' : '';
+                html += '<td class="' + cls + '"' + onclick + '>' + (val || '') + '</td>';
+            });
+            html += '<td class="row-total">' + storeData.total + '</td></tr>';
+        } else {
+            html += '<tr><td colspan="' + (PIVOT_RANGES.length + 2) + '" style="text-align:center;color:#999;padding:20px">אין נתונים</td></tr>';
+        }
+        html += '</tbody>';
+        table.innerHTML = html;
+        return;
+    }
+
+    // All stores — show full pivot by number of stores (ns)
+    pivotTitle.textContent = 'ספירת רשומות CHP לפי מספר סניפים × ימים ללא קופה';
+    const { pivot, maxStores } = buildPivotData();
 
     // Header
     let html = '<thead><tr><th>מספר סניפים</th>';
